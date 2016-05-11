@@ -2,8 +2,8 @@
 Contributors: salesbinder
 Tags: inventory management, e-commerce, shopping cart, billing, invoicing, crm
 Requires at least: 3.1
-Tested up to: 4.5
-Stable tag: 1.0.4
+Tested up to: 4.5.2
+Stable tag: 1.0.5
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,11 @@ If you plan to take credit card numbers on your website, you must install and ac
 Screenshots are posted online [here](http://www.salesbinder.com/integrations/woocommerce/ "SalesBinder + WooCommerce screenshots")
 
 == Changelog ==
+
+= 1.0.5 =
+* New: Incremental Syncing allows for more frequent, more efficient data fetching of latest changed SalesBinder data (every 5 minutes)
+* New: View how recently your data has been synced with SalesBinder (Woo + SalesBinder settings screen)
+* Bug fixes for certain web hosting configuration syncing issues
 
 = 1.0.4 =
 * New: Syncing can now resume in case of server timeouts with large inventory lists

@@ -5,7 +5,7 @@
  * Description: Sync WooCommerce with your SalesBinder data.
  * Author: SalesBinder Development Team
  * Author URI: http://www.salesbinder.com
- * Version: 1.0.4
+ * Version: 1.0.5
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -50,7 +50,8 @@ class WC_SalesBinder {
             add_action( 'wp_admin_force_sync', array($this, 'force_sync') );
 
             add_action( 'wcsalesbinder_cron', array($this, 'cron'));
-            //add_filter('cron_schedules', array($this, 'cron_schedules'));
+            add_action( 'wcsalesbinder_partial_cron', array($this, 'partial_cron'));
+            add_filter('cron_schedules', array($this, 'cron_schedules'));
         }
     }
 
@@ -66,16 +67,22 @@ class WC_SalesBinder {
 
         $sections['wcsalesbinder'] = __( 'Woo + SalesBinder', 'woocommerce' );
         return $sections;
-
     }
 
 
     public function settings_tab() {
 
         woocommerce_admin_fields( $this->wcsalesbinder_get_settings() );
-        $current_sync_page_cmb = (get_option("current_sync_page")) ? get_option("current_sync_page") : 1;
-        echo '<a id="link_force_sync" class="button button-secondary" style="float: right;" href="#"> Force Sync Inventory Data </a>';
-        echo '<span class="description" style="clear:both;float:right"><i>First Page to Next Sync<b>: ' . $current_sync_page_cmb . "</b></i></span>";
+        $current_sync_page_cmb = (get_option("current_sync_page")) ? get_option("current_sync_page") : 0;
+        $total_pages_to_sync = (get_option("total_pages_to_sync")) ? get_option("total_pages_to_sync") : 0;
+        $wcsalesbinder_last_synced = (get_option("wcsalesbinder_last_synced")) ? get_option("wcsalesbinder_last_synced") : '';
+        //echo '<a id="link_force_sync" class="button button-secondary" style="float: right;" href="#"> Force Sync Inventory Data </a>';
+        if ($current_sync_page_cmb > 0 && $total_pages_to_sync > 0) echo '<div id="message" class="updated"><p><strong>Syncing</strong>: Page ' . $current_sync_page_cmb . ' of ' . $total_pages_to_sync . '</p></div>';
+        if ($current_sync_page_cmb > 0 && $total_pages_to_sync > 0) {
+          echo '<p><strong>Data last synced:</strong> syncing now...</p>';
+        }elseif (!empty($wcsalesbinder_last_synced)) {
+          echo '<p><strong>Data last synced:</strong> '. human_time_diff( $wcsalesbinder_last_synced ) .' ago</p>';
+        }
         echo '<script type="text/javascript"> jQuery(document).ready(function($){ $(document).on("click", "#link_force_sync", function(e){ e.preventDefault(); $("#wcsalesbinder_withtest").val("1"); $("#mainform").submit();}); });</script>';
     }
 
@@ -135,16 +142,29 @@ class WC_SalesBinder {
         );
 
         $settings_wcsalesbinder[] =  array(
-            'name'     => __( 'Sync Interval', 'woocommerce' ),
-            'desc_tip' => __( 'Choose One interval of the list, this will be used to sync your SalesBinder Account', 'woocommerce' ),
+            'name'     => __( 'Full Sync Interval', 'woocommerce' ),
+            'desc_tip' => __( 'Choose an interval option from the list. This will be used to complete a full sync of your SalesBinder Account data (slower)', 'woocommerce' ),
             'id'       => 'wcsalesbinder_sync',
             'type'     => 'select',
             'desc'     => __( '', 'woocommerce' ),
             'options'  => array(
                 'disabled'=> __('Disabled', 'woocommerce'),
-                'hourly'=> __('Hourly', 'woocommerce'),
+                //'hourly'=> __('Hourly', 'woocommerce'),
                 'daily'=> __('Daily', 'woocommerce'),
                 'twicedaily'=> __('Twicedaily', 'woocommerce'),
+            ),
+        );
+
+        $settings_wcsalesbinder[] =  array(
+            'name'     => __( 'Incremental Sync Interval', 'woocommerce' ),
+            'desc_tip' => __( 'Choose an interval option from this list. This will be used to sync your latest data changes from your SalesBinder Account (faster)', 'woocommerce' ),
+            'id'       => 'wcsalesbinder_partial_sync',
+            'type'     => 'select',
+            'desc'     => __( '', 'woocommerce' ),
+            'options'  => array(
+                'disabled'=> __('Disabled', 'woocommerce'),
+                'onceevery5minutes'=> __('Every 5 minutes', 'woocommerce'),
+                'onceevery30minutes'=> __('Every 30 minutes', 'woocommerce'),
             ),
         );
 
@@ -163,6 +183,18 @@ class WC_SalesBinder {
             'id' => 'wcsalesbinder_end'
         );
 
+        $settings_wcsalesbinder[] = array(
+            'name' => __( 'Note:' ),
+            'type' => 'title',
+            'desc' => __( '<div style="max-width: 700px;">Pressing the "Save changes" button below will restart the sync process in the background. It may take a few minutes for your initial sync to start showing products in your WooCommerce Products section.</div>', 'woocommerce' ),
+            'id' => 'wcsalesbinder_note'
+        );
+
+        $settings_wcsalesbinder[] = array(
+            'type' => 'sectionend',
+            'id' => 'wcsalesbinder_end'
+        );
+
         return apply_filters( 'wc_settings_wcsalesbinder', $settings_wcsalesbinder );
     }
 
@@ -174,9 +206,17 @@ class WC_SalesBinder {
         wp_clear_scheduled_hook('wcsalesbinder_cron');
 
         $interval = get_option('wcsalesbinder_sync');
+        $partial_interval = get_option('wcsalesbinder_partial_sync');
 
         if (!empty($interval)) {
             wp_schedule_event(time(), $interval, 'wcsalesbinder_cron');
+        }
+
+        // Only updates partial sync interval if a sync has already completed.
+        // If this is the first sync, this cron job will be setup after the first sync is completed.
+        if ((get_option("wcsalesbinder_last_synced")) && (!empty($partial_interval))) {
+            wp_clear_scheduled_hook('wcsalesbinder_partial_cron');
+            wp_schedule_event(time(), $partial_interval, 'wcsalesbinder_partial_cron');
         }
 
         $withtest = get_option('wcsalesbinder_withtest');
@@ -186,12 +226,18 @@ class WC_SalesBinder {
         }
     }
 
-/*
+
     public function cron_schedules($schedules)
     {
         $schedules['onceevery5minutes'] = array(
-            'interval' => 5 * 60,
+            'interval' => 60 * 5,
             'display' => 'Once Every 5 Minutes',
+            'wcsalesbinder' => true
+        );
+
+        $schedules['onceevery30minutes'] = array(
+            'interval' => 60 * 30,
+            'display' => 'Once Every 30 Minutes',
             'wcsalesbinder' => true
         );
 
@@ -203,7 +249,21 @@ class WC_SalesBinder {
 
         return $schedules;
     }
-*/
+
+
+    public function partial_cron()
+    {
+        $subdomain = get_option( 'wcsalesbinder_subdomain' );
+        $api_key = get_option( 'wcsalesbinder_apikey' );
+
+        if (!$api_key || !$subdomain) {
+          return;
+        }
+
+        $this->sync_categories();
+        $this->sync_products('partial');
+    }
+
 
     public function cron()
     {
@@ -294,17 +354,18 @@ class WC_SalesBinder {
     }
 
 
-    public function sync_products()
+    public function sync_products($partial = null)
     {
         ini_set('max_execution_time', 0);
-        if(!get_option("current_sync_page"))
+        if (!get_option("current_sync_page"))
         {
           update_option("current_sync_page", 1);
         }
 
-        $page = get_option("current_sync_page");
+        if (get_option("wcsalesbinder_last_synced")) $wcsalesbinder_last_synced = get_option("wcsalesbinder_last_synced");
 
-        //$page = 1;
+        $page = get_option("current_sync_page");
+        if ($page === 0) $page = 1;
 
         $subdomain = get_option( 'wcsalesbinder_subdomain' );
         $api_key = get_option( 'wcsalesbinder_apikey' );
@@ -313,8 +374,13 @@ class WC_SalesBinder {
 
         do {
 
-          $url = 'https://'.$api_key.':x@' . $subdomain . '.salesbinder.com/api/items.json?page=' . $page . '&page_limit=40&order_field=modified&order_direction=desc';
-          $response = wp_remote_get($url, array('timeout' => 60,));
+          if (isset($partial)) {
+            $timestamp12 = (!empty($wcsalesbinder_last_synced)) ? ($wcsalesbinder_last_synced - 3600) : (time() - 43200);
+            $url = 'https://'.$api_key.':x@' . $subdomain . '.salesbinder.com/api/items.json?page=' . $page . '&page_limit=40&order_field=modified&order_direction=desc&modified_since='.$timestamp12;
+          }else{
+            $url = 'https://'.$api_key.':x@' . $subdomain . '.salesbinder.com/api/items.json?page=' . $page . '&page_limit=40&order_field=modified&order_direction=desc';
+          }
+          $response = wp_remote_get($url, array('timeout' => 60));
 
           if (wp_remote_retrieve_response_code($response) != 200 || is_wp_error($response)) {
             wc_print_notice('SalesBinder sync failed to load ' . $url, 'error');
@@ -322,6 +388,9 @@ class WC_SalesBinder {
           }
 
           $response = json_decode(wp_remote_retrieve_body($response), true);
+
+          if (!empty($response['pages']) && !isset($partial)) update_option("total_pages_to_sync", $response['pages']);
+
           if (!empty($response['Items'])) {
 
             foreach ($response['Items'] as $item) {
@@ -440,7 +509,7 @@ class WC_SalesBinder {
                     ));
 
                     if (wp_remote_retrieve_response_code($image_response) != 200 || is_wp_error($image_response) || !is_readable($image_response['filename'])) {
-                      wc_print_notice('SalesBinder could not sync image for "'.$item['Item']['name'].'" (image url likely incorrect): ' . $image['url_medium'], 'error');
+                      //wc_print_notice('SalesBinder could not sync image for "'.$item['Item']['name'].'" (image url likely incorrect): ' . $image['url_medium'], 'error');
                       continue;
                     }
 
@@ -490,10 +559,26 @@ class WC_SalesBinder {
           $page++;
           update_option("current_sync_page", $page);
         } while(!empty($response['pages']) && $page <= $response['pages']);
-        update_option("current_sync_page", 1);
-        $page = 1;
+
+        if(!get_option("wcsalesbinder_last_synced"))
+        {
+          // Setup incremental cron now that the first full sync has completed.
+          // This will only run after the first sync successfully completes.
+          $partial_interval = get_option('wcsalesbinder_partial_sync');
+          if (!empty($partial_interval)) {
+              wp_clear_scheduled_hook('wcsalesbinder_partial_cron');
+              wp_schedule_event(time(), $partial_interval, 'wcsalesbinder_partial_cron');
+          }
+        }
+
+        update_option("wcsalesbinder_last_synced", time());
+        update_option("current_sync_page", 0); // Set to zero if sync fully completes
+        update_option("total_pages_to_sync", 0);
+
+        $page = 0;
+
         /*
-        // delete products
+        // TODO: delete products
         $local_products = $this->getAllProducts();
         $to_delete = array_diff($local_products, $server_products);
         foreach ($to_delete as $delete) {
@@ -708,7 +793,8 @@ class WC_SalesBinder {
 
       if($unfiltered_attach)
       {
-        $partial_path = end(explode("/", $unfiltered_attach["file"]));
+        $path_array = explode("/", $unfiltered_attach["file"]);
+        $partial_path = end($path_array);
 
         if(file_exists($base_path . "/" . $partial_path))
         {
