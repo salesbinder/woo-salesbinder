@@ -5,23 +5,24 @@ class wc_salesbinder_customs{
 	public static function create_product($item)
     {
         global $wpdb;
-        $cu = wp_get_current_user();
-        $my_user_id = ($cu) ? $cu->ID : 1;
+        //$cu = wp_get_current_user();
+				//$my_user_id = ($cu) ? $cu->ID : 1;
+				$my_user_id = 1;
         $post = array(
             'post_author' => $my_user_id,
             'post_status' => "publish",
-            'post_title' => $item['Item']['name'],
-            'post_content' => $item['Item']['description'],
+            'post_title' => $item['name'],
+            'post_content' => $item['description'],
             'post_parent' => '',
             'post_type' => "product",
-            'post_date' => $item['Item']['created'],
+            'post_date' => $item['created'],
             'comment_status' => 'closed',
             'ping_status' => 'closed'
         );
 
         $post_id = wp_insert_post( $post, true );
 
-        update_post_meta( $post_id, 'id_product_salesbinder', $item['Item']['id'] ); // meta salesbinder
+        update_post_meta( $post_id, 'id_product_salesbinder', $item['id'] ); // meta salesbinder
 
         update_post_meta( $post_id, '_visibility', 'visible' );
         update_post_meta( $post_id, '_stock_status', 'instock');

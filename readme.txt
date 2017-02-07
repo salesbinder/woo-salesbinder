@@ -1,9 +1,9 @@
 === Woo + SalesBinder ===
 Contributors: salesbinder
 Tags: inventory management, e-commerce, shopping cart, billing, invoicing, crm
-Requires at least: 3.1
-Tested up to: 4.5.2
-Stable tag: 1.0.5
+Requires at least: 3.5
+Tested up to: 4.7.2
+Stable tag: 1.2.2
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,30 @@ If you plan to take credit card numbers on your website, you must install and ac
 Screenshots are posted online [here](http://www.salesbinder.com/integrations/woocommerce/ "SalesBinder + WooCommerce screenshots")
 
 == Changelog ==
+
+= 1.2.2 =
+* Added built-in product duplicate checking to prevent possible duplications caused by overlapping syncing processes
+
+= 1.2.1 =
+* Bug fix: Backordered stock that was replenished would sometimes not be updated as back "in stock" in WooCommerce
+
+= 1.2.0 =
+* New: Allow/disallow backordering of products (found in Woo + SalesBinder settings tab)
+
+= 1.1.0 =
+* Updated plugin to utilize SalesBinder's API v2.0 (faster, smarter syncing of data)
+* Bug fix: Inventory item's primary photo will always be displayed first
+
+= 1.0.8 =
+* Bug fix: In certain scenarios only primary product image would sync into WooCommerce
+* Bug fix: Some WooCommerce sites experienced incorrect tax amounts syncing into SalesBinder from completed online orders
+
+= 1.0.7 =
+* WooCommerce 2.6.x compatibility improvements
+
+= 1.0.6 =
+* Minor improvements
+* New features & options coming soon
 
 = 1.0.5 =
 * New: Incremental Syncing allows for more frequent, more efficient data fetching of latest changed SalesBinder data (every 5 minutes)
