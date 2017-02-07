@@ -3,7 +3,7 @@ Contributors: salesbinder
 Tags: inventory management, e-commerce, shopping cart, billing, invoicing, crm
 Requires at least: 3.5
 Tested up to: 4.7.2
-Stable tag: 1.2.2
+Stable tag: 1.2.3
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,10 @@ If you plan to take credit card numbers on your website, you must install and ac
 Screenshots are posted online [here](http://www.salesbinder.com/integrations/woocommerce/ "SalesBinder + WooCommerce screenshots")
 
 == Changelog ==
+
+= 1.2.3 =
+* Improved support for specific versions of PHP 7.0.x
+* Bug fix: Prevent overselling stock when backordering is disabled
 
 = 1.2.2 =
 * Added built-in product duplicate checking to prevent possible duplications caused by overlapping syncing processes

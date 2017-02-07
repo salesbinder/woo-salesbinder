@@ -5,7 +5,7 @@
  * Description: Sync WooCommerce with your SalesBinder data.
  * Author: SalesBinder
  * Author URI: http://www.salesbinder.com
- * Version: 1.2.2
+ * Version: 1.2.3
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -309,7 +309,7 @@ class WC_SalesBinder {
 
         do {
           $url = 'https://'.$api_key.':x@' . $subdomain . '.salesbinder.com/api/2.0/categories.json?page=' . $page;
-          $response = wp_remote_get($url, array('timeout' => 60,));
+          $response = wp_remote_get($url, $this->basic_args_for_get_request($api_key));
 
           if (wp_remote_retrieve_response_code($response) != 200 || is_wp_error($response)) {
             wc_print_notice('SalesBinder sync failed to load ' . $url, 'error');
@@ -396,7 +396,7 @@ class WC_SalesBinder {
           }else{
             $url = 'https://'.$api_key.':x@' . $subdomain . '.salesbinder.com/api/2.0/items.json?page=' . $page . '&pageLimit=50';
           }
-          $response = wp_remote_get($url, array('timeout' => 60));
+          $response = wp_remote_get($url, $this->basic_args_for_get_request($api_key));
 
           if (wp_remote_retrieve_response_code($response) != 200 || is_wp_error($response)) {
             wc_print_notice('SalesBinder sync failed to load ' . $url, 'error');
@@ -458,6 +458,7 @@ class WC_SalesBinder {
                   update_post_meta( $product->post->ID, '_backorders', 'no' );
                   update_post_meta( $product->post->ID, '_stock_status', 'outofstock' );
                 }else{
+                  update_post_meta( $product->post->ID, '_backorders', 'no' );
                   update_post_meta( $product->post->ID, '_stock_status', 'instock' );
                 }
               }
@@ -641,9 +642,7 @@ class WC_SalesBinder {
         $api_key = get_option( 'wcsalesbinder_apikey' );
 
 		    $url = 'https://'.$api_key.':x@' . $subdomain . '.salesbinder.com/api/2.0/customers.json?emailAddress=' . urlencode($email);
-        $response = wp_remote_get($url, array(
-          'timeout' => 30
-        ));
+        $response = wp_remote_get($url, $this->basic_args_for_get_request($api_key));
 
         if (wp_remote_retrieve_response_code($response) != 200 || is_wp_error($response)) {
           wc_print_notice('SalesBinder sync failed to load ' . $url, 'error');
@@ -978,6 +977,16 @@ class WC_SalesBinder {
         }
     }
 
+    public function basic_args_for_get_request($api_key) {
+      $args = array(
+        'headers' => array(
+          'Authorization' => 'Basic ' . base64_encode( $api_key . ':' . "x" ),
+          'Content-Type' => 'application/json'
+        ),
+        'timeout' => 60,
+      );
+      return $args;
+    }
 
 }
 
