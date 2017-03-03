@@ -5,7 +5,7 @@
  * Description: Sync WooCommerce with your SalesBinder data.
  * Author: SalesBinder
  * Author URI: http://www.salesbinder.com
- * Version: 1.2.3
+ * Version: 1.2.4
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -399,6 +399,7 @@ class WC_SalesBinder {
           $response = wp_remote_get($url, $this->basic_args_for_get_request($api_key));
 
           if (wp_remote_retrieve_response_code($response) != 200 || is_wp_error($response)) {
+            if ($page > 1) update_option("current_sync_page", 0); // reset page number if error occurs after first page
             wc_print_notice('SalesBinder sync failed to load ' . $url, 'error');
             return;
           }
