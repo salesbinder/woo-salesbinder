@@ -5,7 +5,7 @@
  * Description: Sync WooCommerce with your SalesBinder data.
  * Author: SalesBinder
  * Author URI: http://www.salesbinder.com
- * Version: 1.2.4
+ * Version: 1.2.5
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -389,9 +389,9 @@ class WC_SalesBinder {
         $local_products = array();
 
         do {
+          $timestamp12 = (!empty($wcsalesbinder_last_synced)) ? ($wcsalesbinder_last_synced - 7200) : (time() - 43200);
 
           if (isset($partial)) {
-            $timestamp12 = (!empty($wcsalesbinder_last_synced)) ? ($wcsalesbinder_last_synced - 3600) : (time() - 43200);
             $url = 'https://'.$api_key.':x@' . $subdomain . '.salesbinder.com/api/2.0/items.json?page=' . $page . '&pageLimit=50&modifiedSince='.$timestamp12;
           }else{
             $url = 'https://'.$api_key.':x@' . $subdomain . '.salesbinder.com/api/2.0/items.json?page=' . $page . '&pageLimit=50';
@@ -411,13 +411,18 @@ class WC_SalesBinder {
           if (!empty($response['items'][0])) {
 
             foreach ($response['items'][0] as $item) {
-              if (!$item['published']) {
+
+              if (empty($item['published']) || !empty($item['archived'])) {
+                // Remove any unpublished or archived items from Woo
+                $post_id = $this->get_product_by_id_salesbinder($item['id']);
+                if (!empty($post_id)) wp_delete_post( $post_id );
                 continue;
+              }else{
+                // check if product exists
+                $post_id = $this->get_product_by_id_salesbinder($item['id']);
               }
 
               $server_products[] = $item['id'];
-              // check if product exists
-              $post_id = $this->get_product_by_id_salesbinder($item['id']);
 
               if ($post_id) {
                 // exists
@@ -622,18 +627,21 @@ class WC_SalesBinder {
 
         $page = 0;
 
-        /*
-        // TODO: delete products
-        $local_products = $this->getAllProducts();
-        $to_delete = array_diff($local_products, $server_products);
-        foreach ($to_delete as $delete) {
-            $index = array_search($delete, $local_products);
-            wp_delete_post( $index );
+        // Sync deleted inventory items from SalesBinder by removing them from Woo
+        $url = 'https://'.$api_key.':x@' . $subdomain . '.salesbinder.com/api/2.0/deleted_log.json?pageLimit=200&contextId=6&deletedSince='.$timestamp12;
+        $response = wp_remote_get($url, $this->basic_args_for_get_request($api_key));
+
+        if (wp_remote_retrieve_response_code($response) != 200 || is_wp_error($response)) {
+          wc_print_notice('SalesBinder (deleted items) sync failed to load ' . $url, 'error');
         }
 
-        // Delete all products with author = 0
-        wc_salesbinder_customs::delete_post_author_zero();
-        */
+        $response = json_decode(wp_remote_retrieve_body($response), true);
+
+        foreach ($response['deletedlog'][0] as $item) {
+          // check if product exists and delete it
+          $post_id = $this->get_product_by_id_salesbinder($item['record_id']);
+          if (!empty($post_id)) wp_delete_post( $post_id );
+        }
     }
 
 
