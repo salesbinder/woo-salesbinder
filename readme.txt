@@ -2,8 +2,8 @@
 Contributors: salesbinder
 Tags: inventory management, e-commerce, shopping cart, billing, invoicing, crm
 Requires at least: 3.5
-Tested up to: 4.7.2
-Stable tag: 1.2.5
+Tested up to: 4.7.4
+Stable tag: 1.2.6
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,10 @@ If you plan to take credit card numbers on your website, you must install and ac
 Screenshots are posted online [here](http://www.salesbinder.com/integrations/woocommerce/ "SalesBinder + WooCommerce screenshots")
 
 == Changelog ==
+
+= 1.2.6 =
+* Compatibility improvements for WooCommerce 3.x
+* Bug fix: Fixed issue when category names or custom field names contained a forward slash
 
 = 1.2.5 =
 * New: Syncing now manages deleted/archived/unpublished inventory items from SalesBinder and removes them from WooCommerce

@@ -5,7 +5,7 @@
  * Description: Sync WooCommerce with your SalesBinder data.
  * Author: SalesBinder
  * Author URI: http://www.salesbinder.com
- * Version: 1.2.5
+ * Version: 1.2.6
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -323,7 +323,7 @@ class WC_SalesBinder {
 
               $server_categories[] = $category['id'];
               $category_name = sanitize_text_field(str_replace('&', '&amp;', $category['name'])); // clean ampersands
-              $category_name = str_replace('/', '|', $category_name); // clean forward slashes
+              $category_name = str_replace('/', '&#x2F;', $category_name); // clean forward slashes
 
               // check if exists
               $term = get_term_by('name', $category_name, 'product_cat');
@@ -445,31 +445,33 @@ class WC_SalesBinder {
                 }
               }
 
+              $product_id = method_exists( $product, 'get_id' ) ? $product->get_id() : $product->id;
+
               // update prices
-			        update_post_meta( $product->post->ID, '_regular_price', $item['price'] );
-              update_post_meta( $product->post->ID, '_price', $item['price'] );
+			        update_post_meta( $product_id, '_regular_price', $item['price'] );
+              update_post_meta( $product_id, '_price', $item['price'] );
 
               // update stock
-              update_post_meta( $product->post->ID, '_sku', $item['sku'] );
-              update_post_meta( $product->post->ID, '_stock', $item['quantity'] );
+              update_post_meta( $product_id, '_sku', $item['sku'] );
+              update_post_meta( $product_id, '_stock', $item['quantity'] );
 
               // update backorder option
               $backorders_enabled = get_option('wcsalesbinder_backorders');
               if (empty($backorders_enabled) || $backorders_enabled == 'yes') {
-                update_post_meta( $product->post->ID, '_backorders', 'yes' );
-                update_post_meta( $product->post->ID, '_stock_status', 'instock' );
+                update_post_meta( $product_id, '_backorders', 'yes' );
+                update_post_meta( $product_id, '_stock_status', 'instock' );
               }else{
                 if ($item['quantity'] <= 0) {
                   // out of stock and not allowed to be on backorder
-                  update_post_meta( $product->post->ID, '_backorders', 'no' );
-                  update_post_meta( $product->post->ID, '_stock_status', 'outofstock' );
+                  update_post_meta( $product_id, '_backorders', 'no' );
+                  update_post_meta( $product_id, '_stock_status', 'outofstock' );
                 }else{
-                  update_post_meta( $product->post->ID, '_backorders', 'no' );
-                  update_post_meta( $product->post->ID, '_stock_status', 'instock' );
+                  update_post_meta( $product_id, '_backorders', 'no' );
+                  update_post_meta( $product_id, '_stock_status', 'instock' );
                 }
               }
 
-              $product_old_specs = maybe_unserialize( get_post_meta($product->post->ID, '_product_attributes', true) );
+              $product_old_specs = maybe_unserialize( get_post_meta($product_id, '_product_attributes', true) );
 
               $specs = array();
 
@@ -479,8 +481,9 @@ class WC_SalesBinder {
                 foreach ($item['item_details'] as $detail) {
 
                   if (!empty($detail['custom_field']['publish']) && !empty($detail['value'])) {
-                    $specs[$detail['custom_field']['name']] = array(
-                        'name'=> $detail['custom_field']['name'],
+                    $custom_field_name = str_replace('/', '-', $detail['custom_field']['name']);
+                    $specs[$custom_field_name] = array(
+                        'name'=> $custom_field_name,
                         'value'=> $detail['value'],
                         'position'=> $detail['custom_field']['weight'],
                         'is_visible'=> 1,
@@ -498,31 +501,31 @@ class WC_SalesBinder {
                 }
 
                 if (!empty($specs)) { // add custom fields
-                    update_post_meta($product->post->ID, '_product_attributes', maybe_serialize($specs));
+                    update_post_meta($product_id, '_product_attributes', $specs);
                 }
 
                 if (!empty($product_weight)) {
-                    update_post_meta($product->post->ID, '_weight', preg_replace('/\D/', '', $product_weight) ); // set weight
+                    update_post_meta($product_id, '_weight', preg_replace('/\D/', '', $product_weight) ); // set weight
                 }else{
-                    update_post_meta($product->post->ID, '_weight', null);
+                    update_post_meta($product_id, '_weight', null);
                 }
               }
 
               if(!empty($product_old_specs) && empty($specs)){ // before has custom fields but actually doesn't have
-                  update_post_meta($product->post->ID, '_product_attributes', '');
+                  update_post_meta($product_id, '_product_attributes', '');
               }
 
               // Assign Images to Product
               $filenames = array();
               $existing_filenames = array();
 
-              $featured_id = get_post_thumbnail_id($product->post->ID);
+              $featured_id = get_post_thumbnail_id($product_id);
               if (!empty($featured_id)) {
                   $featured_url = wp_get_attachment_url($featured_id);
                   $existing_filenames[$featured_id] = basename($featured_url);
               }
 
-              $gallery_ids = get_post_meta($product->post->ID, '_product_image_gallery', true);
+              $gallery_ids = get_post_meta($product_id, '_product_image_gallery', true);
               $image_ids = explode(',', $gallery_ids);
 
               if (!empty($image_ids)) {
@@ -559,7 +562,7 @@ class WC_SalesBinder {
                       wc_print_notice('SalesBinder could not sync image for "'.$item['name'].'" (image url likely incorrect): ' . $image['url_medium'], 'error');
                       continue;
                     }else{
-                      $this->set_product_gallery($product->post->ID, $image_response['filename'], $item['name'], $image_counter);
+                      $this->set_product_gallery($product_id, $image_response['filename'], $item['name'], $image_counter);
                     }
 
                     if (file_exists($image_response['filename'])) unlink($image_response['filename']);
@@ -572,7 +575,7 @@ class WC_SalesBinder {
               // TODO: Implement better way to remove old images
               //
               // Delete images not sent!
-              // $old = get_post_meta($product->post->ID, '_product_image_gallery', true);
+              // $old = get_post_meta($product_id, '_product_image_gallery', true);
               // $id_images = explode(',',$old);
               // $temp_images = array();
               // foreach ($id_images as $id_image) {
@@ -585,7 +588,7 @@ class WC_SalesBinder {
               //         $index = array_search($existing_filename, $temp_images);
               //         $id = array_search($index, $id_images);
               //         unset($id_images[$id]);
-              //         update_post_meta( $product->post->ID, '_product_image_gallery', implode(',', $id_images) );
+              //         update_post_meta( $product_id, '_product_image_gallery', implode(',', $id_images) );
               //     }
               //   }
               // }
@@ -597,7 +600,7 @@ class WC_SalesBinder {
                 $term = get_term_by('name', $category_name, 'product_cat');
                 if (!empty($term)) {
                   $category_id = $term->term_id;
-                  $check_asign = wp_set_object_terms( $product->post->ID, $category_id, 'product_cat' );
+                  $check_asign = wp_set_object_terms( $product_id, $category_id, 'product_cat' );
 
                   if(isset($check_asign)){
                     update_woocommerce_term_meta($category_id, 'product_count_product_cat', ($term->count + 1));
