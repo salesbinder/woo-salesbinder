@@ -222,21 +222,57 @@ if ( !class_exists( 'WCSB_Product' ) ) {
 
     private function update_weight( $item, $product_id ) {
       if ( !empty($item['item_details']) ) {
+
+        $i = 0;
         $product_weight = null;
+
         foreach ($item['item_details'] as $detail) {
+
           if (!empty($detail['custom_field']['publish']) && !empty($detail['value'])) {
+            $custom_field_name = str_replace('/', '-', $detail['custom_field']['name']);
+
             if (isset($detail['custom_field']['name']) && (strpos(strtolower($detail['custom_field']['name']),'weight') !== false)) {
               $product_weight = round($detail['value']);
-              break;
+            }else{
+              $specs[$custom_field_name] = array(
+                  'name'=> $custom_field_name,
+                  'value'=> $detail['value'],
+                  'position'=> $detail['custom_field']['weight'],
+                  'is_visible'=> 1,
+                  'is_variation'=> 0,
+                  'is_taxonomy'=> 0
+              );
             }
+            $i++;
           }
+
         }
 
-        if ( !empty($product_weight) ) {
-          update_post_meta($product_id, '_weight', preg_replace('/\D/', '', $product_weight) ); // set weight
-        } else {
-          update_post_meta($product_id, '_weight', null);
+        if (!empty($specs)) { // add custom fields
+            update_post_meta($product_id, '_product_attributes', $specs);
         }
+
+        if (!empty($product_weight)) {
+            update_post_meta($product_id, '_weight', preg_replace('/\D/', '', $product_weight) ); // set weight
+        }else{
+            update_post_meta($product_id, '_weight', null);
+        }
+
+        // foreach ($item['item_details'] as $detail) {
+        //   if (!empty($detail['custom_field']['publish']) && !empty($detail['value'])) {
+        //     if (isset($detail['custom_field']['name']) && (strpos(strtolower($detail['custom_field']['name']),'weight') !== false)) {
+        //       $product_weight = round($detail['value']);
+        //       break;
+        //     }
+        //   }
+        // }
+
+        // if ( !empty($product_weight) ) {
+        //   update_post_meta($product_id, '_weight', preg_replace('/\D/', '', $product_weight) ); // set weight
+        // } else {
+        //   update_post_meta($product_id, '_weight', null);
+        // }
+
       }
     }
 
