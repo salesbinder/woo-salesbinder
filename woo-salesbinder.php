@@ -5,7 +5,7 @@
  * Description: Sync WooCommerce with your SalesBinder data.
  * Author: SalesBinder
  * Author URI: http://www.salesbinder.com
- * Version: 1.2.6
+ * Version: 1.3.1
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -24,7 +24,7 @@
 require_once 'includes/class-wcsb-products.php';
 require_once 'includes/class-wcsb-categories.php';
 require_once plugin_dir_path( __DIR__ ) . 'woocommerce/includes/wc-notice-functions.php';
-require_once dirname(dirname(plugin_dir_path( __DIR__ ))) . '/wp-admin/includes/image.php';
+//require_once 'includes/image-v5.1.1.php';
 
 if ( ! class_exists( 'WC_SalesBinder' ) ) :
 

@@ -143,7 +143,7 @@ if ( !class_exists( 'WCSB_Products' ) ) {
         if ( $page > 1 ) {
           update_option( 'current_sync_page', 0); // reset page number if error occurs after first page
         }
-        wc_print_notice('SalesBinder sync failed to load ' . $url, 'error');
+        wc_print_notice('SalesBinder sync failed to load ' . $page, 'error');
         return false;
       }
 

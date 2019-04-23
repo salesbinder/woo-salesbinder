@@ -263,6 +263,10 @@ if ( !class_exists( 'WCSB_Product' ) ) {
       $attach_id = wp_insert_attachment( $attachment, $upload['file'], $post_id );
 
       // generate metadata and thumbnails
+      if ( !function_exists( 'wp_generate_attachment_metadata') ) {
+        require_once 'image-v5.1.1.php';
+      }
+
       if ( $attach_data = wp_generate_attachment_metadata( $attach_id, $upload['file'] ) ) {
         wp_update_attachment_metadata( $attach_id, $attach_data );
       }
