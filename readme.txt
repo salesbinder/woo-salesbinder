@@ -1,9 +1,9 @@
 === Woo + SalesBinder ===
 Contributors: salesbinder
 Tags: inventory management, e-commerce, shopping cart, billing, invoicing, crm
-Requires at least: 3.5
-Tested up to: 5.1.1
-Stable tag: 1.3.1
+Requires at least: 4.0
+Tested up to: 5.4
+Stable tag: 1.4.0
 License: GPLv2 or later
 License URI: http://www.gnu.org/licenses/gpl-2.0.html
 
@@ -60,6 +60,10 @@ If you plan to take credit card numbers on your website, you must install and ac
 Screenshots are posted online [here](http://www.salesbinder.com/integrations/woocommerce/ "SalesBinder + WooCommerce screenshots")
 
 == Changelog ==
+
+= 1.4.0 =
+* WooCommerce syncing improvements
+* Bug fixes
 
 = 1.3.1 =
 * Minor compatibility improvements

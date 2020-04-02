@@ -5,7 +5,7 @@
  * Description: Sync WooCommerce with your SalesBinder data.
  * Author: SalesBinder
  * Author URI: http://www.salesbinder.com
- * Version: 1.3.1
+ * Version: 1.4.0
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -45,9 +45,9 @@ class WC_SalesBinder {
         $this->init_hooks();
         self::$hooks_defined = true;
       }
-      $this->full_sync    = new WCSB_Products( false );
-      $this->partial_sync = new WCSB_Products( true );
 
+      $this->full_sync = new WCSB_Products( false );
+      $this->partial_sync = new WCSB_Products( true );
       $this->categories = new WCSB_Categories();
     }
 
@@ -57,7 +57,6 @@ class WC_SalesBinder {
         add_filter( 'woocommerce_settings_tabs_array', array($this, 'wcsalesbinder_add_section') );
         add_action( 'woocommerce_settings_tabs_wcsalesbinder', array($this, 'settings_tab') );
         add_action( 'woocommerce_update_options_wcsalesbinder', array($this, 'update_settings') );
-        //add_action( 'woocommerce_order_status_completed', array($this, 'woo_order_success'));
 	      add_action( 'woocommerce_checkout_order_processed', array($this, 'woo_order_success') );
         add_action( 'wp_admin_force_sync', array($this, 'force_sync') );
       }
@@ -267,6 +266,7 @@ class WC_SalesBinder {
       if (!$api_key || !$subdomain) {
         return;
       }
+
       $this->sync_categories();
       $this->sync_products( true );
     }
@@ -338,7 +338,7 @@ class WC_SalesBinder {
       $subdomain = get_option( 'wcsalesbinder_subdomain' );
       $api_key = get_option( 'wcsalesbinder_apikey' );
 
-      $url = 'https://'.$api_key.':x@' . $subdomain . '.salesbinder.com/api/2.0/customers.json?emailAddress=' . urlencode($email);
+      $url = 'https://'.$api_key.':x@app.salesbinder.com/api/2.0/customers.json?emailAddress=' . urlencode($email);
       $response = wp_remote_get($url, $this->basic_args_for_get_request($api_key));
 
       if (wp_remote_retrieve_response_code($response) != 200 || is_wp_error($response)) {
@@ -433,7 +433,7 @@ class WC_SalesBinder {
               )
           );
 
-          $url = 'https://'.$subdomain . '.salesbinder.com/api/2.0/customers.json';
+          $url = 'https://app.salesbinder.com/api/2.0/customers.json';
           $response = wp_remote_post($url, array(
       			'headers' => array(
       			  'Authorization' => 'Basic ' . base64_encode($api_key . ':x'),
@@ -492,7 +492,7 @@ class WC_SalesBinder {
             }
         }
 
-        $url = 'https://' . $subdomain . '.salesbinder.com/api/2.0/documents.json';
+        $url = 'https://app.salesbinder.com/api/2.0/documents.json';
         $response = wp_remote_post( $url, array(
           'headers' => array(
             'Authorization' => 'Basic ' . base64_encode($api_key . ':x'),

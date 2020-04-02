@@ -185,7 +185,8 @@ if ( !class_exists( 'WCSB_Product' ) ) {
       if ( !empty( $term ) ) {
         $check_asign = wp_set_object_terms( $product_id, $term->term_id, 'product_cat' );
         if( isset( $check_asign ) ) {
-          update_woocommerce_term_meta( $term->term_id, 'product_count_product_cat', ($term->count + 1) );
+          //update_woocommerce_term_meta( $term->term_id, 'product_count_product_cat', ($term->count + 1) ); // depreciated
+          update_term_meta( $term->term_id, 'product_count_product_cat', ($term->count + 1) );
         }
       }
     }

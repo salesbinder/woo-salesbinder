@@ -58,7 +58,7 @@ if ( !class_exists( 'WCSB_Categories' ) ) {
     }
 
     private function get_remote_categories( $page ) {
-      $url = 'https://' . $this->api_key . ':x@' . $this->subdomain . '.salesbinder.com/api/2.0/categories.json?page=' . $page;
+      $url = 'https://' . $this->api_key . ':x@app.salesbinder.com/api/2.0/categories.json?page=' . $page;
       $response = wp_remote_get( $url, $this->helpers->basic_args_for_get_request( $this->api_key ) );
 
       if ( wp_remote_retrieve_response_code( $response ) != 200 || is_wp_error( $response ) ) {

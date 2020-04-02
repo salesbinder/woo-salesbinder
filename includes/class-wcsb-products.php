@@ -95,8 +95,6 @@ if ( !class_exists( 'WCSB_Products' ) ) {
     protected function complete() {
       parent::complete();
 
-      error_log( 'SalesBinder sync completed for ' . $this->action );
-
       if( !get_option("wcsalesbinder_last_synced") ) {
         // Setup incremental cron now that the first full sync has completed.
         // This will only run after the first sync successfully completes.
@@ -111,7 +109,7 @@ if ( !class_exists( 'WCSB_Products' ) ) {
       update_option("current_sync_page", 0); // Set to zero if sync fully completes
       update_option("total_pages_to_sync", 0);
 
-      $page = 0;
+      $page = 1;
 
       $wcsalesbinder_last_synced = get_option( 'wcsalesbinder_last_synced', false);
       $last_sync_timestamp = !empty( $wcsalesbinder_last_synced ) ? $wcsalesbinder_last_synced - 7200 : time() - 43200;
@@ -119,7 +117,7 @@ if ( !class_exists( 'WCSB_Products' ) ) {
       $wcsalesbinder_last_synced = null;
 
       // Sync deleted inventory items from SalesBinder by removing them from Woo
-      $url = 'https://' . $this->api_key . ':x@' . $this->subdomain . '.salesbinder.com/api/2.0/deleted_log.json?pageLimit=200&contextId=6&deletedSince=' . $last_sync_timestamp;
+      $url = 'https://' . $this->api_key . ':x@app.salesbinder.com/api/2.0/deleted_log.json?pageLimit=200&contextId=6&deletedSince=' . $last_sync_timestamp;
       $response = wp_remote_get( $url, $this->helpers->basic_args_for_get_request( $this->api_key ) );
 
       if (wp_remote_retrieve_response_code($response) != 200 || is_wp_error($response)) {
@@ -128,10 +126,12 @@ if ( !class_exists( 'WCSB_Products' ) ) {
 
       $response = json_decode(wp_remote_retrieve_body($response), true);
 
-      foreach ($response['deletedlog'][0] as $item) {
-        // check if product exists and delete it
-        $post_id = $this->helpers->get_product_by_id_salesbinder($item['record_id']);
-        if (!empty($post_id)) wp_delete_post( $post_id );
+      if (!empty($response['deletedlog'][0])) {
+        foreach ($response['deletedlog'][0] as $item) {
+          // check if product exists and delete it
+          $post_id = $this->helpers->get_product_by_id_salesbinder($item['record_id']);
+          if (!empty($post_id)) wp_delete_post( $post_id );
+        }
       }
     }
 
@@ -166,7 +166,7 @@ if ( !class_exists( 'WCSB_Products' ) ) {
     }
 
     public function get_remote_products( $page, $last_sync_timestamp = false ) {
-      $url = 'https://' . $this->api_key . ':x@' . $this->subdomain . '.salesbinder.com/api/2.0/items.json?page=' . $page . '&pageLimit=20';
+      $url = 'https://' . $this->api_key . ':x@app.salesbinder.com/api/2.0/items.json?page=' . $page . '&pageLimit=20';
       if ( $this->is_partial ) {
         if ( !$last_sync_timestamp ) {
           $wcsalesbinder_last_synced = get_option( 'wcsalesbinder_last_synced', false);
